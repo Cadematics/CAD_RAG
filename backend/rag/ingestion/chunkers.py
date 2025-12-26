@@ -26,28 +26,50 @@ def fixed_chunking(text_blocks, chunk_size=500, overlap=50):
 
 def section_chunking(text_blocks, max_words=700):
     chunks = []
-    current = []
+    current_text = []
+    current_pages = []
     current_section = None
 
     for block in text_blocks:
+        # New section → flush previous chunk
         if block["section"] != current_section:
-            if current:
+            if current_text:
                 chunks.append({
-                    "text": " ".join(current),
-                    "section": current_section
+                    "text": " ".join(current_text),
+                    "section": current_section,
+                    "page_start": min(current_pages),
+                    "page_end": max(current_pages),
                 })
-            current = []
+            current_text = []
+            current_pages = []
             current_section = block["section"]
 
-        current.append(block["text"])
+        words = block["text"].split()
+        current_text.extend(words)
+        current_pages.append(block["page"])
 
-    if current:
+        # Optional safety: split very large sections
+        if len(current_text) >= max_words:
+            chunks.append({
+                "text": " ".join(current_text),
+                "section": current_section,
+                "page_start": min(current_pages),
+                "page_end": max(current_pages),
+            })
+            current_text = []
+            current_pages = []
+
+    # Flush last chunk
+    if current_text:
         chunks.append({
-            "text": " ".join(current),
-            "section": current_section
+            "text": " ".join(current_text),
+            "section": current_section,
+            "page_start": min(current_pages),
+            "page_end": max(current_pages),
         })
 
     return chunks
+
 
 
 
